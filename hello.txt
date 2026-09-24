@@ -1,4 +1,0 @@
-Hello Git
-Git is awesome
-Hello again
-Hello again again
