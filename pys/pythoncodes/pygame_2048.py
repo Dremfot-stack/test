@@ -166,8 +166,7 @@ class Pad:
             if scores[tag] < s:
                 tag = i
         if self.switches[tag] == 0:
-            print("out")
-            out()
+            return -1
         return tag
 
 def log(x):
@@ -348,7 +347,11 @@ def main():
     while True:
         sign = receive()
         w = Pad(wall)
-        sign = sl[w.evaluate(2)]
+        e = w.evaluate(2)
+        if e == -1:
+            init(wall)
+            produce(wall)
+        sign = sl[e]
         time.sleep(cd)
         point = move(wall,sign)
         score += point
