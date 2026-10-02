@@ -2,12 +2,15 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include <algorithm>
+#include <cmath>
 using namespace std;
 
 #define width 60
 #define height 20
 #define initLength 10
 #define tick 10
+#define end -10000
 
 static vector<int*> body = {};
 static char direction = 'd';
@@ -27,9 +30,9 @@ void init() {
 	}
 }
 
-bool trial(vector<int*> list,int x,int y) {
-	for (int i = 0 ; i < list.size() ; ++i) {
-		if (list[i][0] == x && list[i][1] == y) {
+bool trial(int x,int y) {
+	for (int i = 0 ; i < body.size() ; ++i) {
+		if (body[i][0] == x && body[i][1] == y) {
 			return true;
 		}
 	}
@@ -61,41 +64,139 @@ void eat() {
 		body.push_back(plus);
 		apple[0] = rand() % width;
 		apple[1] = rand() % height;
+		if (trial(apple[0],apple[1])) {
+			eat();
+		}
+	}
+}
+
+int* detective() {
+	int* region = new int[4];
+	for (int i = 0;i < 4;++i) region[i] = 0;
+
+	int x = body[0][0];
+	int y = body[0][1];
+
+	if (y == 2) region[0] += end;
+	else if (y == height - 3) region[1] += end;
+	if (x == 2) region[2] += end;
+	else if (x == width - 3) region[3] += end;
+
+	for (int i : {-1,1}) {
+		if (trial(x+i,y)) region[(5+i)/2] += end;
+		if (trial(x,y+i)) region[(1+i)/2] += end;
+	}
+	
+	return region;
+}
+
+void nevigate() {
+	int* region = detective();
+	char set[4] = {'u','d','l','r'};
+	int score[4] = {0,0,0,0};
+	
+	int sum = 0;
+	for (int i = 0;i < 4;++i) sum += region[i];
+
+	int x = body[0][0];
+	int y = body[0][1];
+
+	if (y > apple[1]) {
+		score[0]++;
+		score[1]--;
+	} else if (y < apple[1]) {
+		score[0]--;
+		score[1]++;
+	}
+	if (x > apple[0]) {
+		score[2]++;
+		score[3]--;
+	} else if (x < apple[0]) {
+		score[2]--;
+		score[3]++;
+	}
+
+	for (int i = 0;i < 4;++i) {
+		score[i] += region[i];
+	}
+
+	int tag = 0;
+	for (int i = 0;i < 4;++i) {
+		if (score[tag] < score[i]) {
+			tag = i;
+		}
+	}
+	if (score[tag] < 0) {
+		if (y == 2) {
+			direction = 'u';
+		} else if (y == height - 3) {
+			direction = 'd';
+		} else if (x == 2) {
+			direction = 'l';
+		} else if (x == width - 3) {
+			direction = 'r';
+		}
+	} else {
+		direction = set[tag];
 	}
 }
 
 void ac() {
-	int* head = body[0];
-	if (head[0] < apple[0]) {
-		direction = 'r';
-	} else if (head[0] > apple[0]) {
-		direction = 'l';
-	} else if (head[1] > apple[1]) {
-		direction = 'u';
+	nevigate();
+}
+
+char getimg(int x,int y) {
+	int tag = 0;
+	for (int i = 0 ; i < body.size() ; ++i) {
+		if ((body[i][0] == x) && (body[i][1] == y)) {
+			tag = i;
+		}
+	}
+	if (tag == 0) {
+		return 'X';
+	} else if (tag == body.size() - 1) {
+		if (body[tag-1][0] == body[tag][0]) {
+			return '|';
+		} else {
+			return '-';
+		}
 	} else {
-		direction = 'd';
+		if (body[tag-1][0] == body[tag+1][0]) return '|';
+		int k = - (body[tag-1][1] - body[tag+1][1]) / (body[tag-1][0] - body[tag+1][0]);
+		if (k == -1) {
+			return '\\';
+		} else if (k == 1) {
+			return '/';
+		} else {
+			return '-';
+		}
 	}
 }
 
 void draw() {
 	gotoxy(0,0);
+	for (int x = 0 ; x <= width ; ++x) {
+		cout << '#';
+	}
+	cout << "#\n";
 	for (int y = 0 ; y < height ; ++y) {
+		cout << '#';
 		for (int x = 0 ; x < width ; ++x) {
 			int* element = new int[2];
-			if (trial(body,x,y)) {
-				cout << 'O';
+			if (trial(x,y)) {
+				cout << getimg(x,y);
 			} else if (x == apple[0] && y == apple[1]) {
 			       	cout << '@';
 			} else {
 				cout << ' ';
 			}
 		}
-		cout << "|\n";
+		cout << "#\n";
 	}
-	for (int x = 0 ; x < width ; ++x) {
-		cout << '-';
+	for (int x = 0 ; x <= width ; ++x) {
+		cout << '#';
 	}
-	cout << "+\n";
+	cout << "#\n";
 	cout << body[0][0] << ' ' << body[0][1] << endl;
 }
 
